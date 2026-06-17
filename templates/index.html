@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Insights</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Background Gradients (Decorative) -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div>
+                    <h1>BigQuery <span class="gradient-text">Release Insights</span></h1>
+                    <p class="subtitle">Real-time parsed updates and announcements from Google Cloud BigQuery</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="theme-toggle" id="themeToggleBtn" title="Toggle Light/Dark Mode" aria-label="Toggle theme">
+                    <i class="fa-solid fa-moon"></i>
+                </div>
+                
+                <button id="refreshBtn" class="btn btn-primary" title="Fetch fresh release notes">
+                    <span class="btn-spinner" id="spinnerIcon">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </span>
+                    <span class="btn-text">Refresh Feed</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats and Meta Bar -->
+        <div class="meta-bar">
+            <div class="meta-item">
+                <i class="fa-regular fa-clock"></i>
+                <span>Last updated: <strong id="lastUpdatedTime">-</strong></span>
+            </div>
+            <div class="meta-item" id="sourceIndicator">
+                <span class="badge badge-cache">Cache</span>
+            </div>
+        </div>
+
+        <!-- Controls (Search and Filters) -->
+        <section class="controls-section">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Search updates by keyword, feature, issue..." autocomplete="off">
+                <button id="clearSearchBtn" class="clear-search-btn" title="Clear search">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="filters-wrapper">
+                <span class="filter-label">Filter by type:</span>
+                <div class="filter-tags" id="filterTagsContainer">
+                    <button class="filter-tag active" data-type="all">All <span class="count" id="count-all">0</span></button>
+                    <button class="filter-tag" data-type="Feature">Features <span class="count" id="count-feature">0</span></button>
+                    <button class="filter-tag" data-type="Announcement">Announcements <span class="count" id="count-announcement">0</span></button>
+                    <button class="filter-tag" data-type="Issue">Issues <span class="count" id="count-issue">0</span></button>
+                    <button class="filter-tag" data-type="Deprecation">Deprecations <span class="count" id="count-deprecation">0</span></button>
+                    <button class="filter-tag" data-type="other">Other <span class="count" id="count-other">0</span></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Information (Showing X of Y) -->
+        <div class="status-summary" id="statusSummary">
+            Loading release notes...
+        </div>
+
+        <!-- Release Notes Feed -->
+        <main class="feed-container" id="feedContainer">
+            <!-- Skeleton cards shown during loading -->
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>BigQuery Release Notes RSS Reader &bull; Powered by Flask &amp; Vanilla web tech</p>
+        </footer>
+    </div>
+
+    <!-- Tweet Modal (using modern HTML dialog) -->
+    <dialog id="tweetDialog" class="modal-dialog">
+        <div class="dialog-content">
+            <header class="dialog-header">
+                <h2><i class="fa-brands fa-x-twitter"></i> Compose Tweet</h2>
+                <button class="close-dialog-btn" id="closeDialogBtn" aria-label="Close dialog">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            
+            <main class="dialog-body">
+                <p class="dialog-desc">Customize your update update summary before tweeting. Remember the 280-character limit.</p>
+                
+                <!-- Card preview of selected note -->
+                <div class="tweet-preview-source">
+                    <div class="preview-type" id="previewType">Feature</div>
+                    <div class="preview-date" id="previewDate">June 16, 2026</div>
+                    <div class="preview-text" id="previewText">...</div>
+                </div>
+
+                <div class="textarea-wrapper">
+                    <textarea id="tweetTextarea" rows="6" maxlength="500" placeholder="What's happening?"></textarea>
+                    <div class="textarea-stats">
+                        <div class="char-count-wrapper">
+                            <span id="charCount">0</span>/280
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="24" height="24">
+                                    <circle class="progress-ring-bg" stroke="#333" stroke-width="2.5" fill="transparent" r="9" cx="12" cy="12"/>
+                                    <circle class="progress-ring-bar" id="progressRingBar" stroke="#1d9bf0" stroke-width="2.5" fill="transparent" r="9" cx="12" cy="12"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            
+            <footer class="dialog-footer">
+                <button class="btn btn-secondary" id="copyTweetBtn">
+                    <i class="fa-regular fa-copy"></i> Copy Text
+                </button>
+                <button class="btn btn-twitter" id="submitTweetBtn">
+                    <i class="fa-brands fa-x-twitter"></i> Tweet Now
+                </button>
+            </footer>
+        </div>
+    </dialog>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Custom Script -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
